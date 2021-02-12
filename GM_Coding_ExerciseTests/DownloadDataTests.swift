@@ -36,7 +36,7 @@ class DownloadDataTests: XCTestCase {
     }
     
     func testDownload_ForExpectedPath() {
-        let urlString = String("https://itunes.apple.com/search?term=Metallica")
+        let urlString = String("https://itunes.apple.com/search")
         let url = URL(string: urlString)!
         sut.getUrl(searchText: sut.searchBar.text!)
         let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: true)
