@@ -20,17 +20,17 @@ class SearchViewController: UIViewController {
         tableView.delegate = self
         tableView.dataSource = self
         searchBar.delegate = self
-        getUrl(searchText: searchBar.text!)
         
-        let nib = UINib.init(nibName: "LoadingCell", bundle: nil)
-        self.tableView.register(nib, forCellReuseIdentifier: "LoadingCell")
+        getUrl(searchText: searchBar.text!)
     }
     
     func getUrl(searchText: String) {
-        let urlString = String("https://itunes.apple.com/search?term=" + "\(searchBar.text!)")
+        let urlString = String("https://itunes.apple.com/search?term=" + "\(searchBar.text!)&limit=1000")
         if let url = URL(string: urlString) {
             if let data = try? Data(contentsOf: url) {
-                parse(json: data)
+                DispatchQueue.global().async {
+                    self.parse(json: data)
+                }
             }
         }
     }
@@ -39,8 +39,9 @@ class SearchViewController: UIViewController {
         let decoder = JSONDecoder()
         if let jsonResults = try? decoder.decode(Results.self, from: json) {
             results = jsonResults.results
-            print(results)
-            tableView.reloadData()
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+            }
         }
     }
 }
@@ -48,13 +49,17 @@ class SearchViewController: UIViewController {
 extension SearchViewController: UISearchBarDelegate {
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
         if !searchBar.text!.isEmpty {
-            searchBar.resignFirstResponder()
+            searchBar.becomeFirstResponder()
             results = []
-            getUrl(searchText: searchBar.text!)
-            tableView.reloadData()
-        }
-        results.sort { (resultA, resultB) -> Bool in
-            return resultA.artistName?.localizedStandardCompare(resultB.artistName!) == .orderedAscending
+            self.showSpinner()
+            Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) {_ in
+                self.getUrl(searchText: searchBar.text!)
+                self.results.sort { (resultA, resultB) -> Bool in
+                    return resultA.artistName?.localizedStandardCompare(resultB.artistName!) == .orderedAscending
+                }
+                self.tableView.reloadData()
+                self.removeSpinner()
+            }
         }
     }
     
@@ -77,12 +82,11 @@ extension SearchViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cellIdentifier = "ResultCell"
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellIdentifier, for: indexPath) as! ResultCell
-        cell.artistNameLabel.text = "Artist Name: \(results[indexPath.row].artistName!)"
-        cell.trackNameLabel.text = "Track Name: \(results[indexPath.row].trackName!)"
-        cell.trackPriceLabel.text = "Track Price: $\(results[indexPath.row].trackPrice!)"
-        cell.primaryGenreLabel.text = "Primary Genre: \(results[indexPath.row].primaryGenreName!)"
+        let cell = tableView.dequeueReusableCell(withIdentifier: TableView.CellIdentifiers.searchResultCell, for: indexPath) as! ResultCell
+        cell.artistNameLabel.text = "Artist Name: \(results[indexPath.row].artistName ?? "Not found")"
+        cell.trackNameLabel.text = "Track Name: \(results[indexPath.row].trackName ?? "Not found")"
+        cell.trackPriceLabel.text = "Track Price: $\(results[indexPath.row].trackPrice ?? 0)"
+        cell.primaryGenreLabel.text = "Primary Genre: \(results[indexPath.row].primaryGenreName ?? "Not found")"
         cell.releaseDateLabel.text = "Release Date: \(String(results[indexPath.row].releaseDate!))"
         return cell
     }
@@ -90,4 +94,13 @@ extension SearchViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
     }
+    
+    func tableView(_ tableView: UITableView, willSelectRowAt indexPath: IndexPath) -> IndexPath? {
+        if results.count == 0 {
+            return nil
+        } else {
+            return indexPath
+        }
+    }
 }
+
