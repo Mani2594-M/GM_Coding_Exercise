@@ -25,7 +25,7 @@ class SearchViewController: UIViewController {
     }
     
     func getUrl(searchText: String) {
-        let urlString = String("https://itunes.apple.com/search?term=" + "\(searchBar.text!)&limit=1000")
+        let urlString = String("https://itunes.apple.com/search?term=" + "\(searchBar.text!)")
         if let url = URL(string: urlString) {
             if let data = try? Data(contentsOf: url) {
                 DispatchQueue.global().async {
