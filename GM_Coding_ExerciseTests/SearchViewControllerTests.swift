@@ -16,7 +16,7 @@ class SearchViewControllerTests: XCTestCase {
         // Put setup code here. This method is called before the invocation of each test method in the class.
         super.setUp()
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
-        sut = storyboard.instantiateViewController(identifier: "SearchViewController") as! SearchViewController
+        sut = storyboard.instantiateViewController(identifier: "SearchViewController") as? SearchViewController
         _ = sut.view
     }
 
